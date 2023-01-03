@@ -1,4 +1,5 @@
 GoogleNews==1.6.6
+newspaper==0.1.0.7
 newspaper3k==0.2.8
 numpy==1.23.5
 openai==0.25.0
