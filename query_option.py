@@ -5,7 +5,7 @@ import re
 import spacy
 from GoogleNews import GoogleNews
 import numpy as np
-from transformers import pipeline,EncoderDecoderModel, LongformerTokenizer
+from transformers import pipeline, EncoderDecoderModel, LongformerTokenizer
 from urlextract import URLExtract
 from newspaper import Article
 extractor = URLExtract()
@@ -66,7 +66,7 @@ sentiment = pipeline(
     tokenizer="distilbert-base-uncased-finetuned-sst-2-english",
 )
 NER = spacy.load("en_core_web_sm")
-openai.api_key = "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"   
+openai.api_key = "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"   
 st.set_page_config(layout="wide") 
 # def newsCatcherApi(company):
 #     """News Catcher API"""
