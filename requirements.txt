@@ -4,7 +4,7 @@ numpy==1.23.5
 openai==0.25.0
 pandas==1.5.2
 spacy==3.4.3
-en-core-web-sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.0.0/en_core_web_sm-3.0.0-py3-none-any.whl
+en-core-web-sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.4.1/en_core_web_sm-3.4.1-py3-none-any.whl
 streamlit==1.16.0
 transformers==4.25.1
 urlextract==1.7.1
