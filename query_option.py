@@ -66,7 +66,7 @@ sentiment = pipeline(
     tokenizer="distilbert-base-uncased-finetuned-sst-2-english",
 )
 NER = spacy.load("en_core_web_sm")
-openai.api_key = "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"   
+openai.api_key = "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"   
 st.set_page_config(layout="wide") 
 # def newsCatcherApi(company):
 #     """News Catcher API"""
