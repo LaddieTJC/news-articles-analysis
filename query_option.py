@@ -8,6 +8,8 @@ import numpy as np
 from transformers import pipeline, EncoderDecoderModel, LongformerTokenizer
 from urlextract import URLExtract
 from newspaper import Article
+import nltk
+
 extractor = URLExtract()
 model = EncoderDecoderModel.from_pretrained("patrickvonplaten/longformer2roberta-cnn_dailymail-fp16")
 tokenizer = LongformerTokenizer.from_pretrained("allenai/longformer-base-4096")
@@ -17,7 +19,7 @@ sentiment = pipeline(
     tokenizer="distilbert-base-uncased-finetuned-sst-2-english",
 )
 NER = spacy.load("en_core_web_sm")
-openai.api_key = "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"   
+openai.api_key = "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"   
 st.set_page_config(layout="wide") 
 
 @st.experimental_memo
@@ -43,13 +45,39 @@ def newspaper_3k(data):
         content.parse()
         return content.text
     except Exception as e:
-        return False
+        return e
 
 
 def displayNews(df):
     st.header(f"[{df['title']}]({df['link']})")
     st.write(df['date'])
 
+def articleNLP(title):
+        entity_label = {}
+        with col3:
+            st.write(title)
+            entity = NER(title)
+            for e in entity.ents:
+
+                if e.label_ == 'ORG' or e.label_ == 'GPE':
+                    if e.label_ in entity_label:
+                        entity_label[e.label_].append(e.text)
+                    else:
+                        entity_label[e.label_] = e.text
+
+            if not entity_label:
+                st.write("No entity extracted")
+            else:
+                data = pd.DataFrame.from_dict([entity_label])
+                st.table(data)
+
+            st.subheader("Sentiment:")   
+            st.write(sentiment(title)[0]['label'])
+            summary  = st.session_state['keyword_df'][st.session_state['keyword_df']['title'] == title]['link'].values[0]
+                    # st.write(len(nltk.word_tokenize(newspaper_3k(summary))))
+                    # st.write(newspaper_3k(summary))
+                    # st.subheader("Summary of article:")
+            st.write(newspaper_3k(summary))
 
 
 
@@ -111,48 +139,6 @@ with col2:
     if "keyword_df" in st.session_state:
         for index, row in  st.session_state['keyword_df'].iterrows():
             st.header(f"[{row['title']}]({row['link']})")
-            view = st.button("View",key=index)
-            if view:
-                st.session_state['r_article'] = row['title']
+            view = st.button("View",key=index,on_click=articleNLP,args=(row['title'], ))
     else:
         st.write("Search for news")
-    # else:
-    #     if 'keyword_df' in st.session_state:
-    #         for index, row in  st.session_state['keyword_df'].iterrows():
-    #             with st.form(f"form{index}"):
-    #                 st.header(f"[{row['title']}]({row['link']})")
-    #                 view = st.form_submit_button("View")
-    #                 if view:
-    #                     st.session_state['r_article'] = row['title']
-
-
-
-with col3:
-    entity_label = {}
-    if 'r_article' not in st.session_state:
-        st.write("Please select an article")
-    else:
-        st.write(st.session_state['r_article'])
-        entity = NER(st.session_state['r_article'])
-   
-        for e in entity.ents:
-            if e.label_ == 'ORG' or e.label_ == 'GPE':
-                if e.label_ in entity_label:
-                    entity_label[e.label_].append(e.text)
-                else:
-                    entity_label[e.label_] = e.text
-        if not entity_label:
-            st.write("No entity extracted")
-        else:
-            data = pd.DataFrame.from_dict([entity_label])
-            st.write(data)
-            
-            
-        st.subheader("Sentiment:")   
-        st.write(sentiment(st.session_state['r_article'])[0]['label'])
-        
-        with st.spinner("Summarizing.... Please wait"):
-            summary  = st.session_state['keyword_df'][st.session_state['keyword_df']['title'] == st.session_state['r_article']]['link'].values[0]
-            st.subheader("Summary of article:")
-            st.write(summarize(newspaper_3k(summary)))
-  
