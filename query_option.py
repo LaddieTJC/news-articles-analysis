@@ -19,7 +19,7 @@ sentiment = pipeline(
     tokenizer="distilbert-base-uncased-finetuned-sst-2-english",
 )
 NER = spacy.load("en_core_web_sm")
-openai.api_key = "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"   
+openai.api_key = "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"   
 st.set_page_config(layout="wide") 
 
 @st.experimental_memo
@@ -31,7 +31,6 @@ def googleNewsApi(query):
     df['link'] = df['link'].apply(lambda x: "https://"+x)
     return df
 
-@st.experimental_memo
 def summarize(text):
     input_ids = tokenizer(text, return_tensors="pt").input_ids
     output_ids = model.generate(input_ids)
@@ -45,41 +44,35 @@ def newspaper_3k(data):
         content.parse()
         return content.text
     except Exception as e:
-        return e
-
+        return False
 
 def displayNews(df):
     st.header(f"[{df['title']}]({df['link']})")
     st.write(df['date'])
 
 def articleNLP(title):
+    with col3:
         entity_label = {}
-        with col3:
-            st.write(title)
-            entity = NER(title)
-            for e in entity.ents:
+        summary  = st.session_state['keyword_df'][st.session_state['keyword_df']['title'] == title]['link'].values[0]
+        summary = newspaper_3k(summary)
+        if summary:
+                with st.spinner("Analyzing..."):
+                    st.subheader("Summary of article:")
+                    st.write(summarize(tokenizeForSummarizer(summary)))
+                    st.subheader("Sentiment:")   
+                    st.write(sentiment(title)[0]['label'])
+                    entity = NER(summary)
+                    entities = set((e.label_,e.text) for e in entity.ents)
+                    # print(entities)
+                    entities =list(entities)
+                    st.table(pd.DataFrame(entities, columns=['Entity','Identified']))
+        else:
+            st.write("Cannot retrieve article")
 
-                if e.label_ == 'ORG' or e.label_ == 'GPE':
-                    if e.label_ in entity_label:
-                        entity_label[e.label_].append(e.text)
-                    else:
-                        entity_label[e.label_] = e.text
-
-            if not entity_label:
-                st.write("No entity extracted")
-            else:
-                data = pd.DataFrame.from_dict([entity_label])
-                st.table(data)
-
-            st.subheader("Sentiment:")   
-            st.write(sentiment(title)[0]['label'])
-            summary  = st.session_state['keyword_df'][st.session_state['keyword_df']['title'] == title]['link'].values[0]
-                    # st.write(len(nltk.word_tokenize(newspaper_3k(summary))))
-                    # st.write(newspaper_3k(summary))
-                    # st.subheader("Summary of article:")
-            st.write(newspaper_3k(summary))
-
-
+def tokenizeForSummarizer(summary):
+    if len(nltk.word_tokenize(summary)) > 4096:
+        summary = " ".join(nltk.word_tokenize(summary)[40:3500])
+    return summary
 
 # def newsCatcherApi(company):
 #     """News Catcher API"""
@@ -103,8 +96,10 @@ col1,col2,col3=st.columns(3)
 with col1: 
     company_expander = st.expander(label='Company Filtering')
     articles=pd.DataFrame()
+    categories = ['All', 'Partnership','Client News','C-Suite']
     with company_expander:
         company = st.text_input("Search for company:")
+        news_class = st.selectbox('Categories:',categories)
         if company:
             with st.spinner("Please wait loading news"):
                 articles = googleNewsApi(company)
@@ -130,7 +125,7 @@ with col2:
         max_tokens=100)
         regex = r'\b[A-Za-z\s]+\b'
         keywords = re.findall(regex,response['choices'][0]['text'])
-
+        st.write(keywords)
         for i in keywords:
             keyword_articles.append(googleNewsApi(i))
         st.session_state['keyword_df'] = pd.concat(keyword_articles, ignore_index=True)
