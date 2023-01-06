@@ -9,18 +9,34 @@ from transformers import pipeline, EncoderDecoderModel, LongformerTokenizer
 from urlextract import URLExtract
 from newspaper import Article
 import nltk
+from keybert import KeyBERT
 
 
+st.set_page_config(layout="wide") 
+kw_model = KeyBERT()
 extractor = URLExtract()
-model = EncoderDecoderModel.from_pretrained("patrickvonplaten/longformer2roberta-cnn_dailymail-fp16")
-tokenizer = LongformerTokenizer.from_pretrained("allenai/longformer-base-4096")
-sentiment = pipeline(
-    "sentiment-analysis",
-    model="distilbert-base-uncased-finetuned-sst-2-english",
-    tokenizer="distilbert-base-uncased-finetuned-sst-2-english",
-)
-NER = spacy.load("en_core_web_sm")
-openai.api_key = "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"   
+# model = EncoderDecoderModel.from_pretrained("patrickvonplaten/longformer2roberta-cnn_dailymail-fp16")
+# tokenizer = LongformerTokenizer.from_pretrained("allenai/longformer-base-4096")
+# sentiment = pipeline(
+#     "sentiment-analysis",
+#     model="distilbert-base-uncased-finetuned-sst-2-english",
+#     tokenizer="distilbert-base-uncased-finetuned-sst-2-english",
+# )
+# NER = spacy.load("en_core_web_sm")
+openai.api_key = "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"   
+
+
+@st.experimental_memo
+def runModel():
+    model = EncoderDecoderModel.from_pretrained("patrickvonplaten/longformer2roberta-cnn_dailymail-fp16")
+    tokenizer = LongformerTokenizer.from_pretrained("allenai/longformer-base-4096")
+    sentiment = pipeline(
+        "sentiment-analysis",
+        model="distilbert-base-uncased-finetuned-sst-2-english",
+        tokenizer="distilbert-base-uncased-finetuned-sst-2-english",
+    )
+    NER = spacy.load("en_core_web_sm")
+    return model,tokenizer,sentiment,NER
 
 @st.experimental_memo
 def googleNewsApi(query):
@@ -44,20 +60,26 @@ def summarize(text):
 
 def articleNLP(title,col):
     with col:
-        summary  = st.session_state['keyword_df'][st.session_state['keyword_df']['title'] == title]['link'].values[0]
-        summary = newspaper_3k(summary)
-        if summary:
+        st.session_state['summary']  = st.session_state['keyword_df'][st.session_state['keyword_df']['title'] == title]['link'].values[0]
+        st.session_state['summary'] = newspaper_3k(st.session_state['summary'])
+        if st.session_state['summary']:
                 with st.spinner("Analyzing..."):
                     st.subheader("Summary of article:")
-                    st.write(summarize(tokenizeForSummarizer(summary)))
+                    st.write(summarize(tokenizeForSummarizer(st.session_state['summary'])))
                     st.subheader("Sentiment:")   
                     st.write(sentiment(title)[0]['label'])
-                    entity = NER(summary)
+                    st.subheader("Top 5 keywords from article: ")
+                    st.write(", ".join([i[0] for i in kw_model.extract_keywords(st.session_state['summary'])]))
+                    entity = NER(st.session_state['summary'])
                     entities = set((e.label_,e.text) for e in entity.ents)
                     # print(entities)
                     entities =list(entities)
-                    st.selectbox("Filter entities:",NER.get_pipe("ner").labels)
-                    st.table(pd.DataFrame(entities, columns=['Entity','Identified']).sort_values('Entity'))
+                    st.session_state['ent_type'] = st.selectbox("Filter entities:",NER.get_pipe("ner").labels)
+                    st.session_state['ent_df'] = pd.DataFrame(entities, columns=['Entity','Identified']).sort_values('Entity')
+                    st.table(st.session_state['ent_df'])
+                    if st.session_state['ent_type']:
+                        st.table(st.session_state['ent_df'][st.session_state['ent_df']['Entity'] == st.session_state['ent_type']])
+                    
         else:
             st.write("Cannot retrieve article")
 
@@ -75,9 +97,14 @@ def newspaper_3k(data):
         return content.text
     except Exception as e:
         return False
-
+model,tokenizer, sentiment, NER = runModel()
+comparables_dict  = {
+    'cymulate':['Sophos', 'Crowdstrike', 'wiz', 'scrut', 'kenna security', 'attackiq'],
+    'evisort':['SirionOne', 'Icertis', 'Jaggaer', 'LinkSquares', 'Coupa', 'Agiloft'],
+    'easysend':['PandaDoc', 'SurveySparrow', 'eversign', 'DocuSign', 'Monday.com'
+]
+}
 def main():
-    st.set_page_config(layout="wide") 
     company_tab, bd_tab = st.tabs(["Company", 'Business Development'])
     with company_tab:
         company_col, comparables_col = st.columns(2,gap='large')
@@ -86,7 +113,8 @@ def main():
             articles=pd.DataFrame()
             categories = ['All', 'Partnership','Client News','C-Suite']
             with company_expander:
-                company = st.text_input("Search for company:")
+                # company = st.text_input("Search for company:")
+                company = st.selectbox("Select Company",list(comparables_dict.keys()))
                 news_class = st.selectbox('Categories:',categories)
                 if company:
                     with st.spinner("Please wait loading news"):
@@ -94,8 +122,9 @@ def main():
             if type(articles) != 'str':
                 articles.apply(displayNews,axis=1)
         with comparables_col:
-            st.header("Comparables News")
-            st.write('test')
+            if company:
+                comparables_list = comparables_dict[company.lower()]
+                st.write(comparables_list)
 
 
     with bd_tab:
@@ -127,13 +156,41 @@ def main():
             if "keyword_df" in st.session_state:
                 for index, row in  st.session_state['keyword_df'].iterrows():
                     st.header(f"[{row['title']}]({row['link']})")
-                    # view = st.button("View",key=index)
-                    # if view:
-                    #     st.session_state['r_article'] = row['title']
-                    view = st.button("View",key=index,on_click=articleNLP,args=(row['title'],nlp_col, ))
+                    view = st.button("View",key=index)
+                    if view:
+                        st.session_state['r_article'] = row['title']
+                        st.session_state['has_article'] = True
+                    # view = st.button("View",key=index,on_click=articleNLP,args=(row['title'],nlp_col, ))
             else:
                 st.write("Search for news")
+        with nlp_col:
+            if 'r_article' in st.session_state:
+                st.session_state['content']  = st.session_state['keyword_df'][st.session_state['keyword_df']['title'] == st.session_state['r_article']]['link'].values[0]
+                st.session_state['content'] = newspaper_3k(st.session_state['content'])
 
+                if st.session_state['content']:
+                    if st.session_state['has_article'] == True:
+                        with st.spinner("Analyzing..."):
+                            st.session_state['summary'] = summarize(tokenizeForSummarizer(st.session_state['content']))
+                            st.session_state['sentiment'] = sentiment(st.session_state['r_article'])[0]['label']
+                            st.session_state['keywords'] = ", ".join([i[0] for i in kw_model.extract_keywords(st.session_state['content'])])
+                            st.session_state['entities'] = NER(st.session_state['content'])
+                            st.session_state['entities'] = list(set((e.label_,e.text) for e in st.session_state['entities'].ents))
+                        st.session_state['has_article'] = False
+                            
+                    st.subheader("Summary of article:")
+                    st.write(st.session_state['summary'])
+                    st.subheader("Sentiment:")   
+                    st.write(st.session_state['sentiment'])
+                    st.subheader("Top 5 keywords from article: ")
+                    st.write(st.session_state['keywords'] )
+                    st.session_state['ent_type'] = st.selectbox("Filter entities:",NER.get_pipe("ner").labels)
+                    st.session_state['ent_df'] = pd.DataFrame(st.session_state['entities'] , columns=['Entity','Identified']).sort_values('Entity')
+                    if st.session_state['ent_type']:
+                        st.table(st.session_state['ent_df'][st.session_state['ent_df']['Entity'] == st.session_state['ent_type']])
+                else:
+                    st.write("Content cannot be retreived")
+        # with nlp_col:
             
         #     if 'r_article' in st.session_state:
         #         summary  = st.session_state['keyword_df'][st.session_state['keyword_df']['title'] == st.session_state['r_article']]['link'].values[0]
