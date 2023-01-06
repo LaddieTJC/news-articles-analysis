@@ -105,7 +105,7 @@ comparables_dict  = {
 ]
 }
 def main():
-    company_tab, bd_tab = st.tabs(["Company", 'Business Development'])
+    company_tab, bd_tab,qa_tab = st.tabs(["Company", 'Business Development', 'Question and Answer'])
     with company_tab:
         company_col, comparables_col = st.columns(2,gap='large')
         with company_col:
@@ -157,9 +157,13 @@ def main():
                 for index, row in  st.session_state['keyword_df'].iterrows():
                     st.header(f"[{row['title']}]({row['link']})")
                     view = st.button("View",key=index)
+                    # save = st.button('Save', key=index)
                     if view:
                         st.session_state['r_article'] = row['title']
                         st.session_state['has_article'] = True
+                    # if save:
+                    #     st.session_state['save_header'] = row['title']
+
                     # view = st.button("View",key=index,on_click=articleNLP,args=(row['title'],nlp_col, ))
             else:
                 st.write("Search for news")
@@ -190,6 +194,7 @@ def main():
                         st.table(st.session_state['ent_df'][st.session_state['ent_df']['Entity'] == st.session_state['ent_type']])
                 else:
                     st.write("Content cannot be retreived")
+    # with qa_tab:
         # with nlp_col:
             
         #     if 'r_article' in st.session_state:
