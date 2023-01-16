@@ -23,7 +23,7 @@ extractor = URLExtract()
 #     tokenizer="distilbert-base-uncased-finetuned-sst-2-english",
 # )
 # NER = spacy.load("en_core_web_sm")
-openai.api_key = "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"   
+openai.api_key = st.secrets['openai']  
 
 
 @st.experimental_singleton
