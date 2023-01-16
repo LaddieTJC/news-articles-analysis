@@ -11,3 +11,4 @@ urlextract==1.7.1
 torch
 torchvision
 torchaudio
+keybert

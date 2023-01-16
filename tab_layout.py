@@ -23,10 +23,10 @@ extractor = URLExtract()
 #     tokenizer="distilbert-base-uncased-finetuned-sst-2-english",
 # )
 # NER = spacy.load("en_core_web_sm")
-openai.api_key = "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"   
+openai.api_key = "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"   
 
 
-@st.experimental_memo
+@st.experimental_singleton
 def runModel():
     model = EncoderDecoderModel.from_pretrained("patrickvonplaten/longformer2roberta-cnn_dailymail-fp16")
     tokenizer = LongformerTokenizer.from_pretrained("allenai/longformer-base-4096")
@@ -97,6 +97,7 @@ def newspaper_3k(data):
         return content.text
     except Exception as e:
         return False
+
 model,tokenizer, sentiment, NER = runModel()
 comparables_dict  = {
     'cymulate':['Sophos', 'Crowdstrike', 'wiz', 'scrut', 'kenna security', 'attackiq'],
@@ -104,8 +105,9 @@ comparables_dict  = {
     'easysend':['PandaDoc', 'SurveySparrow', 'eversign', 'DocuSign', 'Monday.com'
 ]
 }
+
 def main():
-    company_tab, bd_tab,qa_tab = st.tabs(["Company", 'Business Development', 'Question and Answer'])
+    company_tab, bd_tab = st.tabs(["Company", 'Business Development'])
     with company_tab:
         company_col, comparables_col = st.columns(2,gap='large')
         with company_col:
@@ -117,14 +119,19 @@ def main():
                 company = st.selectbox("Select Company",list(comparables_dict.keys()))
                 news_class = st.selectbox('Categories:',categories)
                 if company:
-                    with st.spinner("Please wait loading news"):
-                        articles = googleNewsApi(company)
+                    articles = googleNewsApi(company)
             if type(articles) != 'str':
                 articles.apply(displayNews,axis=1)
         with comparables_col:
             if company:
                 comparables_list = comparables_dict[company.lower()]
                 st.write(comparables_list)
+                st.session_state['com_df'] = pd.concat((googleNewsApi(i) for i in comparables_list), ignore_index=True)
+                st.session_state['com_df'].apply(displayNews,axis=1)
+                # st.session_state['competitors_df'] = pd.concat(competitors_df, ignore_index = True)
+            
+            # if 'competitors_df' in st.session_state:
+            #     st.session_state['competitors_df'].apply(displayNews,axis=1)
 
 
     with bd_tab:
@@ -148,10 +155,8 @@ def main():
                 regex = r'\b[A-Za-z\s]+\b'
                 keywords = re.findall(regex,response['choices'][0]['text'])
                 st.write(keywords)
-                for i in keywords:
-                    keyword_articles.append(googleNewsApi(i))
-                st.session_state['keyword_df'] = pd.concat(keyword_articles, ignore_index=True)
-                
+                st.write(pd.concat((googleNewsApi(i) for i in keywords),ignore_index=True))
+                st.session_state['keyword_df'] = pd.concat((googleNewsApi(i) for i in keywords), ignore_index=True)
                 
             if "keyword_df" in st.session_state:
                 for index, row in  st.session_state['keyword_df'].iterrows():
@@ -177,17 +182,25 @@ def main():
                         with st.spinner("Analyzing..."):
                             st.session_state['summary'] = summarize(tokenizeForSummarizer(st.session_state['content']))
                             st.session_state['sentiment'] = sentiment(st.session_state['r_article'])[0]['label']
+                            # st.session_state['sentiment_content'] = sentiment(st.session_state['content'])[0]['label']
+                            st.session_state['sentiment_summarized'] = sentiment(st.session_state['summary'])[0]['label']
                             st.session_state['keywords'] = ", ".join([i[0] for i in kw_model.extract_keywords(st.session_state['content'])])
+                            st.session_state['bi-keywords'] = ", ".join(i[0] for i in kw_model.extract_keywords(st.session_state['content'],keyphrase_ngram_range=(2,2)))
                             st.session_state['entities'] = NER(st.session_state['content'])
                             st.session_state['entities'] = list(set((e.label_,e.text) for e in st.session_state['entities'].ents))
                         st.session_state['has_article'] = False
                             
                     st.subheader("Summary of article:")
                     st.write(st.session_state['summary'])
-                    st.subheader("Sentiment:")   
+                    st.subheader("Sentiment (Title):")   
                     st.write(st.session_state['sentiment'])
+                    # st.subheader("Sentiment (Full content):")   
+                    # st.write(st.session_state['sentiment_content'])
+                    st.subheader("Sentiment (summarized content):")   
+                    st.write(st.session_state['sentiment_summarized'])
                     st.subheader("Top 5 keywords from article: ")
                     st.write(st.session_state['keywords'] )
+                    st.write(st.session_state['bi-keywords'])
                     st.session_state['ent_type'] = st.selectbox("Filter entities:",NER.get_pipe("ner").labels)
                     st.session_state['ent_df'] = pd.DataFrame(st.session_state['entities'] , columns=['Entity','Identified']).sort_values('Entity')
                     if st.session_state['ent_type']:
