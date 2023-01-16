@@ -153,9 +153,8 @@ def main():
                 prompt=prompt+query,
                 max_tokens=100)
                 regex = r'\b[A-Za-z\s]+\b'
-                keywords = re.findall(regex,response['choices'][0]['text'])
+                keywords = [query] + re.findall(regex,response['choices'][0]['text'])
                 st.write(keywords)
-                st.write(pd.concat((googleNewsApi(i) for i in keywords),ignore_index=True))
                 st.session_state['keyword_df'] = pd.concat((googleNewsApi(i) for i in keywords), ignore_index=True)
                 
             if "keyword_df" in st.session_state:
