@@ -50,6 +50,7 @@ def googleNewsApi(query):
 def displayNews(df):
     st.header(f"[{df['title']}]({df['link']})")
     st.write(df['date'])
+    st.write("Link: ",df['link'])
 
 
 def summarize(text):
