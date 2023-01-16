@@ -26,7 +26,7 @@ extractor = URLExtract()
 openai.api_key = st.secrets['openai']  
 
 
-@st.cache
+@st.cache(allow_output_mutation=True)
 def runModel():
     model = EncoderDecoderModel.from_pretrained("patrickvonplaten/longformer2roberta-cnn_dailymail-fp16")
     tokenizer = LongformerTokenizer.from_pretrained("allenai/longformer-base-4096")
