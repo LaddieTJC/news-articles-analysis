@@ -11,7 +11,7 @@ from newspaper import Article
 import nltk
 from keybert import KeyBERT
 
-
+nltk.download('punkt')
 st.set_page_config(layout="wide") 
 kw_model = KeyBERT()
 extractor = URLExtract()
