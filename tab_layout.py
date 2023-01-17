@@ -157,7 +157,7 @@ def main():
                 regex = r'\b[A-Za-z\s]+\b'
                 keywords = [query] + re.findall(regex,response['choices'][0]['text'])
                 st.session_state['keyword_df'] = pd.concat((googleNewsApi(i) for i in keywords), ignore_index=True)
-                
+                st.write(keywords)
             if "keyword_df" in st.session_state:
                 for index, row in  st.session_state['keyword_df'].iterrows():
                     st.header(f"[{row['title']}]({row['link']})")
