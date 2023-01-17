@@ -121,12 +121,13 @@ def main():
                 news_class = st.selectbox('Categories:',categories)
                 if company:
                     articles = googleNewsApi(company)
+            st.subheader("Company News:")
             if type(articles) != 'str':
                 articles.apply(displayNews,axis=1)
         with comparables_col:
+            st.subheader("Competitor News:")
             if company:
                 comparables_list = comparables_dict[company.lower()]
-                st.write(comparables_list)
                 st.session_state['com_df'] = pd.concat((googleNewsApi(i) for i in comparables_list), ignore_index=True)
                 st.session_state['com_df'].apply(displayNews,axis=1)
                 # st.session_state['competitors_df'] = pd.concat(competitors_df, ignore_index = True)
