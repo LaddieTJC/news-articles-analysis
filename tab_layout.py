@@ -23,7 +23,7 @@ extractor = URLExtract()
 #     tokenizer="distilbert-base-uncased-finetuned-sst-2-english",
 # )
 # NER = spacy.load("en_core_web_sm")
-openai.api_key = st.secrets['openai']  
+openai.api_key = "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"
 
 
 @st.cache(allow_output_mutation=True)
@@ -161,6 +161,8 @@ def main():
             if "keyword_df" in st.session_state:
                 for index, row in  st.session_state['keyword_df'].iterrows():
                     st.header(f"[{row['title']}]({row['link']})")
+                    st.write(row['date'])
+                    st.write('link: ',row['link'])
                     view = st.button("View",key=index)
                     # save = st.button('Save', key=index)
                     if view:
