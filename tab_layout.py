@@ -16,7 +16,7 @@ nltk.download('punkt')
 st.set_page_config(layout="wide") 
 kw_model = KeyBERT()
 extractor = URLExtract()
-openai.api_key = "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"
+openai.api_key = "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"
 
 
 @st.cache(allow_output_mutation=True)
@@ -37,9 +37,11 @@ def googleNewsApi(query,fromDate= (datetime.today() - timedelta(days=364)).strft
     googlenews = GoogleNews(start=fromDate,end=toDate)
     googlenews.get_news(query)
     df = pd.DataFrame(googlenews.results())
-    df['link'] = df['link'].apply(lambda x: "https://"+x)
-    return df
-
+    if not df.empty:
+        df['link'] = df['link'].apply(lambda x: "https://"+x)
+        return df
+    else:
+        return df
 def displayNews(df):
     st.header(f"[{df['title']}]({df['link']})")
     st.write(df['date'])
@@ -74,6 +76,10 @@ def newspaper_3k(data):
         return content.text
     except Exception as e:
         return False
+def companies_list():
+    df = pd.read_excel("vpc-list-forsmu.xlsx")
+    return df['Company/Service Name'].tolist()
+
 
 model,tokenizer, NER = runModel()
 comparables_dict  = {
@@ -105,23 +111,26 @@ def main():
         with company_col:
             company_expander = st.expander(label='Company Filtering')
             articles=pd.DataFrame()
-            categories = ['All', 'Management Change','Use of Funds','C-Suite hiring','Fundraising','Layoffs and Staffing','Merger Acquisition','']
+            categories = ['All', 'Management Change','Use of Funds','C-Suite hiring','Fundraising','Layoffs and Staffing','Merger Acquisition']
             with company_expander:
-                company = st.selectbox("Select Company",list(comparables_dict.keys()))
+                # company = st.selectbox("Select Company",list(comparables_dict.keys()))
+                company = st.selectbox("Select Company",companies_list())
                 news_class = st.selectbox('Categories:',categories)
                 fromDate = (st.date_input("Date From",datetime.today() - timedelta(days=365))).strftime("%m/%d/%Y")
                 toDate = (st.date_input("To")).strftime("%m/%d/%Y")
                 if company or toDate or fromDate:
                     articles = googleNewsApi(company,fromDate=fromDate,toDate=toDate)
                     # Comparable News Column 
-                    with comparables_col:
-                        st.subheader("Competitor News:")
-                        comparables_list = comparables_dict[company]
-                        st.session_state['com_df'] = pd.concat((googleNewsApi(i) for i in comparables_list), ignore_index=True)
-                        st.session_state['com_df'].apply(displayNews,axis=1)
+                    # with comparables_col:
+                    #     st.subheader("Competitor News:")
+                    #     comparables_list = comparables_dict[company]
+                    #     st.session_state['com_df'] = pd.concat((googleNewsApi(i) for i in comparables_list), ignore_index=True)
+                    #     st.session_state['com_df'].apply(displayNews,axis=1)
             st.subheader("Company News:")
-            if type(articles) != 'str':
+            if not articles.empty:
                 articles.apply(displayNews,axis=1)
+            else:
+                st.write("No news retrieved")
 
     # Business Development Tab 
 
