@@ -16,26 +16,24 @@ nltk.download('punkt')
 st.set_page_config(layout="wide") 
 kw_model = KeyBERT()
 extractor = URLExtract()
-# model = EncoderDecoderModel.from_pretrained("patrickvonplaten/longformer2roberta-cnn_dailymail-fp16")
-# tokenizer = LongformerTokenizer.from_pretrained("allenai/longformer-base-4096")
-# sentiment = pipeline(
-#     "sentiment-analysis",
-#     model="distilbert-base-uncased-finetuned-sst-2-english",
-#     tokenizer="distilbert-base-uncased-finetuned-sst-2-english",
-# )
-# NER = spacy.load("en_core_web_sm")
-openai.api_key = "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"
+openai.api_key = "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"
 
 
 @st.cache(allow_output_mutation=True)
 def runModel():
+
+    """ Load Model """
+
     model = EncoderDecoderModel.from_pretrained("patrickvonplaten/longformer2roberta-cnn_dailymail-fp16")
     tokenizer = LongformerTokenizer.from_pretrained("allenai/longformer-base-4096")
     NER = spacy.load("en_core_web_sm")
     return model,tokenizer,NER
 
-# @st.experimental_memo
-def googleNewsApi(query,fromDate= datetime.today() - timedelta(days=364),toDate=datetime.today()):
+
+def googleNewsApi(query,fromDate= (datetime.today() - timedelta(days=364)).strftime("%m/%d/%Y"),toDate=datetime.today().strftime("%m/%d/%Y")):
+    
+    """ Run GoogleNews Library"""
+
     googlenews = GoogleNews(start=fromDate,end=toDate)
     googlenews.get_news(query)
     df = pd.DataFrame(googlenews.results())
@@ -49,41 +47,26 @@ def displayNews(df):
 
 
 def summarize(text):
+
+    """ Summarizing of article """
+
     input_ids = tokenizer(text, return_tensors="pt").input_ids
     output_ids = model.generate(input_ids)
-    # Get the summary from the output tokens
     return tokenizer.decode(output_ids[0], skip_special_tokens=True)
-
-def articleNLP(title,col):
-    with col:
-        st.session_state['summary']  = st.session_state['keyword_df'][st.session_state['keyword_df']['title'] == title]['link'].values[0]
-        st.session_state['summary'] = newspaper_3k(st.session_state['summary'])
-        if st.session_state['summary']:
-                with st.spinner("Analyzing..."):
-                    st.subheader("Summary of article:")
-                    st.write(summarize(tokenizeForSummarizer(st.session_state['summary'])))
-                    st.subheader("Top 5 keywords from article: ")
-                    st.write(", ".join([i[0] for i in kw_model.extract_keywords(st.session_state['summary'])]))
-                    entity = NER(st.session_state['summary'])
-                    entities = set((e.label_,e.text) for e in entity.ents)
-                    # print(entities)
-                    entities =list(entities)
-                    st.session_state['ent_type'] = st.selectbox("Filter entities:",NER.get_pipe("ner").labels)
-                    st.session_state['ent_df'] = pd.DataFrame(entities, columns=['Entity','Identified']).sort_values('Entity')
-                    st.table(st.session_state['ent_df'])
-                    if st.session_state['ent_type']:
-                        st.table(st.session_state['ent_df'][st.session_state['ent_df']['Entity'] == st.session_state['ent_type']])
-                    
-        else:
-            st.write("Cannot retrieve article")
 
 
 def tokenizeForSummarizer(summary):
+
+    """ Check to see if an article exceed 4096 tokens """
+
     if len(nltk.word_tokenize(summary)) > 4096:
         summary = " ".join(nltk.word_tokenize(summary)[40:3500])
     return summary
 
 def newspaper_3k(data):
+
+    """ Newspaper3k to scrape the news using GoogleNews Library """
+    
     content = Article(data)
     try:
         content.download()
@@ -94,46 +77,57 @@ def newspaper_3k(data):
 
 model,tokenizer, NER = runModel()
 comparables_dict  = {
-    'cymulate':['Sophos', 'Crowdstrike', 'wiz', 'scrut', 'kenna security', 'attackiq'],
-    'evisort':['SirionOne', 'Icertis', 'Jaggaer', 'LinkSquares', 'Coupa', 'Agiloft'],
-    'easysend':['PandaDoc', 'SurveySparrow', 'eversign', 'DocuSign', 'Monday.com']
+    'Cymulate':['Sophos', 'Crowdstrike', 'wiz', 'scrut', 'kenna security', 'attackiq'],
+    'Evisort':['SirionOne', 'Icertis', 'Jaggaer', 'LinkSquares', 'Coupa', 'Agiloft'],
+    'EasySend':['PandaDoc', 'SurveySparrow', 'eversign', 'DocuSign', 'Monday.com'],
+    'Experify': ['Yotpo','Bazaarvoice','Trustpilot'],
+    'Gitpod': ['Salesforce','AWS','Kinsta'],
+    'Lumigo':['Datadog','Dynatrace','New Relic'],
+    'Metaview':['SeekOut','TestGorilla','CodeSignal'],
+    'OpsLevel':['Dynatrace','LogicMonitor','AppDynamics'],
+    'Orkes':['Lightlytics','Knapsack','Dagger'],
+    'Pronto':['Slack','Webex App','Google Workspace'],
+    'Upsolver':['Snowflake','Posit','Qubole'],
+    # 'Barramundi Group':[''],
+    'ISE Foods Inc':['Shin-Shin Foods','DooleBoB','S Foods'],
+    'InterOpera':['Kenovate Solutions','InterWeb','OLS software'],
+    'Nuritas':['LabGenius','Brightseed','Metanovas']
 }
 
 def main():
     company_tab, bd_tab = st.tabs(["Company", 'Business Development'])
+
+    # Portfolio News Tab  
+
     with company_tab:
         company_col, comparables_col = st.columns(2,gap='large')
+        # Company News Column
         with company_col:
             company_expander = st.expander(label='Company Filtering')
             articles=pd.DataFrame()
-            categories = ['All', 'Partnership','Client News','C-Suite']
+            categories = ['All', 'Management Change','Use of Funds','C-Suite hiring','Fundraising','Layoffs and Staffing','Merger Acquisition','']
             with company_expander:
-                # company = st.text_input("Search for company:")
                 company = st.selectbox("Select Company",list(comparables_dict.keys()))
                 news_class = st.selectbox('Categories:',categories)
-                # fromDate = st.date_input("Date From",datetime.today() - timedelta(days=365)).strftime('%m/%d/%Y')
-                # toDate = st.date_input("To:").strftime('%m/%d/%Y')
-                fromDate = st.date_input("Date From",datetime.today() - timedelta(days=365))
-                toDate = st.date_input("To")
-                if company:
+                fromDate = (st.date_input("Date From",datetime.today() - timedelta(days=365))).strftime("%m/%d/%Y")
+                toDate = (st.date_input("To")).strftime("%m/%d/%Y")
+                if company or toDate or fromDate:
                     articles = googleNewsApi(company,fromDate=fromDate,toDate=toDate)
+                    # Comparable News Column 
+                    with comparables_col:
+                        st.subheader("Competitor News:")
+                        comparables_list = comparables_dict[company]
+                        st.session_state['com_df'] = pd.concat((googleNewsApi(i) for i in comparables_list), ignore_index=True)
+                        st.session_state['com_df'].apply(displayNews,axis=1)
             st.subheader("Company News:")
             if type(articles) != 'str':
                 articles.apply(displayNews,axis=1)
-        with comparables_col:
-            st.subheader("Competitor News:")
-            if company:
-                comparables_list = comparables_dict[company.lower()]
-                st.session_state['com_df'] = pd.concat((googleNewsApi(i) for i in comparables_list), ignore_index=True)
-                st.session_state['com_df'].apply(displayNews,axis=1)
-                # st.session_state['competitors_df'] = pd.concat(competitors_df, ignore_index = True)
-            
-            # if 'competitors_df' in st.session_state:
-            #     st.session_state['competitors_df'].apply(displayNews,axis=1)
 
+    # Business Development Tab 
 
     with bd_tab:
         bd_col, nlp_col = st.columns(2)
+        # Show news based on user query and openAI keywords 
         with bd_col:
             news_expander = st.expander(label="Search News")
             keyword_articles = []
@@ -143,9 +137,7 @@ def main():
                     choice = st.number_input("number of related keywords to return:",min_value=2,help="Return number of keywords related to your input")
                     submitted = st.form_submit_button("Submit")
             if submitted:
-
                 prompt = f"Find {choice} related search terms based on " + query +" and return in ordered list"
-
                 response = openai.Completion.create(
                 model="text-davinci-003",
                 prompt=prompt+query,
@@ -160,16 +152,13 @@ def main():
                     st.write(row['date'])
                     st.write('link: ',row['link'])
                     view = st.button("View",key=index)
-                    # save = st.button('Save', key=index)
                     if view:
                         st.session_state['r_article'] = row['title']
                         st.session_state['has_article'] = True
-                    # if save:
-                    #     st.session_state['save_header'] = row['title']
-
-                    # view = st.button("View",key=index,on_click=articleNLP,args=(row['title'],nlp_col, ))
             else:
                 st.write("Search for news")
+
+        # Column for NLP  
         with nlp_col:
             if 'r_article' in st.session_state:
                 st.session_state['content']  = st.session_state['keyword_df'][st.session_state['keyword_df']['title'] == st.session_state['r_article']]['link'].values[0]
