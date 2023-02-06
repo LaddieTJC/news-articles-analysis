@@ -165,7 +165,7 @@ def main():
                         st.subheader("Competitor News:")
                         comparables_list = comparables_dict[company]
                         st.session_state['com_df'] = pd.concat((googleNewsApi(i) for i in comparables_list), ignore_index=True)
-                        if st.session_state['com_df']:
+                        if not st.session_state['com_df'].empty:
                             st.session_state['com_df'].apply(displayNews,axis=1)
                         else:
                             st.write("No competitors news retrieved.")
