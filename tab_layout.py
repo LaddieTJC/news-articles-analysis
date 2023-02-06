@@ -16,7 +16,7 @@ nltk.download('punkt')
 st.set_page_config(layout="wide") 
 kw_model = KeyBERT()
 extractor = URLExtract()
-openai.api_key = "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"
+openai.api_key = st.secrets['openai_api']
 
 
 @st.cache(allow_output_mutation=True)
@@ -196,7 +196,7 @@ def main():
                     st.write('link: ',row['link'])
                     view = st.button("View",key=index)
                     if view:
-                        del_session_state()
+                        # del_session_state()
                         st.session_state['r_article'] = row['title']
                         st.session_state['has_article'] = True
             else:
