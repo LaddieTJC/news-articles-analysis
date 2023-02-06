@@ -91,6 +91,11 @@ comparables_dict  = {
     'EndoGastric Solutions (EGS)': ['GI Dynamics'],
     'Indapta Therapeutics':['Adicet Bio'],
     'AnHeart Therapeutics':['Ocugen'],
+    'ArrayComm':['SkyCross '],
+    'Binhui Biotech 武汉滨会生物科技股份有限公司 ':['BeiGene'],
+    'CARD BioSciences Inc. (Regor)':['Vir Biotechnology'],
+    '进化半导体 (Evolusia)':[''],
+    '雅光丝琳控股(广东)有限公司 (Yaguang)':[''],
     'Neuspera Medical':['Neuromonics'],
     'Sonoma Biotherapeutics':['NexImmune'],
     'Amplication':['Flowingly'],
@@ -160,7 +165,10 @@ def main():
                         st.subheader("Competitor News:")
                         comparables_list = comparables_dict[company]
                         st.session_state['com_df'] = pd.concat((googleNewsApi(i) for i in comparables_list), ignore_index=True)
-                        st.session_state['com_df'].apply(displayNews,axis=1)
+                        if st.session_state['com_df']:
+                            st.session_state['com_df'].apply(displayNews,axis=1)
+                        else:
+                            st.write("No competitors news retrieved.")
             st.subheader("Company News:")
             if not articles.empty:
                 articles.apply(displayNews,axis=1)
