@@ -16,7 +16,7 @@ nltk.download('punkt')
 st.set_page_config(layout="wide") 
 kw_model = KeyBERT()
 extractor = URLExtract()
-openai.api_key = "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"
+openai.api_key = "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"
 
 
 @st.cache(allow_output_mutation=True)
@@ -80,9 +80,42 @@ def companies_list():
     df = pd.read_excel("vpc-list-forsmu.xlsx")
     return df['Company/Service Name'].tolist()
 
+def del_session_state():
+    if st.session_state:
+        for key in st.session_state.keys():
+            del st.session_state[key]
 
 model,tokenizer, NER = runModel()
 comparables_dict  = {
+    'Allay Therapeutics': ['Vertex Pharmaceuticals'],
+    'EndoGastric Solutions (EGS)': ['GI Dynamics'],
+    'Indapta Therapeutics':['Adicet Bio'],
+    'Neuspera Medical':['Neuromonics'],
+    'Sonoma Biotherapeutics':['NexImmune'],
+    'Amplication':['Flowingly'],
+    'Bites Learning ':['Connecteam'],
+    'Blings.IO':['Retrieve'],
+    'EverAfter':['TidalScale'],
+    'Firefly (aka Infralight)':['Lightlytics'],
+    'GrowthSpace':['Mentorloop'],
+    'Joonko':['Pymetrics'],
+    'Navina':['Infervision'],
+    'Sayata':['ErisX'],
+    'Coinomo':['DTCO'],
+    'Dedoco':['Eloops'],
+    'Kapiva':['Colugo'],
+    'Karkhana.io':['polySpectra'],
+    'Onato':['eFishery'],
+    'Pace':['Cashew Payments'],
+    'IVF Access':['Healthwire'],
+    'RPG Commerce':['SmartSites'],
+    'SCB Abacus':['JupiterOne'],
+    'Signzy':['Lightico'],   
+    'Speedoc':['CiverMed'],
+    'Threado':['Bazaarvoice'],
+    'TipTip':['Embibe'],
+    'Tortoise':['Hubble'],
+    'Elotl':['Cloudigy '],
     'Cymulate':['Sophos', 'Crowdstrike', 'wiz', 'scrut', 'kenna security', 'attackiq'],
     'Evisort':['SirionOne', 'Icertis', 'Jaggaer', 'LinkSquares', 'Coupa', 'Agiloft'],
     'EasySend':['PandaDoc', 'SurveySparrow', 'eversign', 'DocuSign', 'Monday.com'],
@@ -99,6 +132,7 @@ comparables_dict  = {
     'InterOpera':['Kenovate Solutions','InterWeb','OLS software'],
     'Nuritas':['LabGenius','Brightseed','Metanovas']
 }
+
 
 def main():
     company_tab, bd_tab = st.tabs(["Company", 'Business Development'])
@@ -120,12 +154,12 @@ def main():
                 toDate = (st.date_input("To")).strftime("%m/%d/%Y")
                 if company or toDate or fromDate:
                     articles = googleNewsApi(company,fromDate=fromDate,toDate=toDate)
-                    # Comparable News Column 
-                    # with comparables_col:
-                    #     st.subheader("Competitor News:")
-                    #     comparables_list = comparables_dict[company]
-                    #     st.session_state['com_df'] = pd.concat((googleNewsApi(i) for i in comparables_list), ignore_index=True)
-                    #     st.session_state['com_df'].apply(displayNews,axis=1)
+                    #Comparable News Column 
+                    with comparables_col:
+                        st.subheader("Competitor News:")
+                        comparables_list = comparables_dict[company]
+                        st.session_state['com_df'] = pd.concat((googleNewsApi(i) for i in comparables_list), ignore_index=True)
+                        st.session_state['com_df'].apply(displayNews,axis=1)
             st.subheader("Company News:")
             if not articles.empty:
                 articles.apply(displayNews,axis=1)
@@ -162,6 +196,7 @@ def main():
                     st.write('link: ',row['link'])
                     view = st.button("View",key=index)
                     if view:
+                        del_session_state()
                         st.session_state['r_article'] = row['title']
                         st.session_state['has_article'] = True
             else:
