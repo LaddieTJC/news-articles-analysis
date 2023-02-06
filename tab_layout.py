@@ -90,6 +90,7 @@ comparables_dict  = {
     'Allay Therapeutics': ['Vertex Pharmaceuticals'],
     'EndoGastric Solutions (EGS)': ['GI Dynamics'],
     'Indapta Therapeutics':['Adicet Bio'],
+    'AnHeart Therapeutics':['Ocugen'],
     'Neuspera Medical':['Neuromonics'],
     'Sonoma Biotherapeutics':['NexImmune'],
     'Amplication':['Flowingly'],
