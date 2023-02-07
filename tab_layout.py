@@ -228,14 +228,13 @@ def main():
                 if st.session_state['content']:
                     if st.session_state['has_article'] == True:
                         with st.spinner("Analyzing..."):
-                            analyzeArticle()
-                            # st.session_state['summary'] = summarize(tokenizeForSummarizer(st.session_state['content']))
-                            # st.session_state['keywords'] = ", ".join([i[0] for i in kw_model.extract_keywords(st.session_state['content'])])
-                            # st.session_state['bi-keywords'] = ", ".join(i[0] for i in kw_model.extract_keywords(st.session_state['content'],keyphrase_ngram_range=(2,2)))
-                            # st.session_state['entities'] = NER(st.session_state['content'])
-                            # st.session_state['entities'] = list(set((e.label_,e.text) for e in st.session_state['entities'].ents))
+                            # analyzeArticle()
+                            st.session_state['summary'] = summarize(tokenizeForSummarizer(st.session_state['content']))
+                            st.session_state['keywords'] = ", ".join([i[0] for i in kw_model.extract_keywords(st.session_state['content'])])
+                            st.session_state['bi-keywords'] = ", ".join(i[0] for i in kw_model.extract_keywords(st.session_state['content'],keyphrase_ngram_range=(2,2)))
+                            st.session_state['entities'] = NER(st.session_state['content'])
+                            st.session_state['entities'] = list(set((e.label_,e.text) for e in st.session_state['entities'].ents))
                         st.session_state['has_article'] = False
-                            
                     st.header("Summary of article:")
                     st.write(st.session_state['summary'])
                     st.header("Top 5 keywords from article: ")
