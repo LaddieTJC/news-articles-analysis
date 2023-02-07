@@ -30,16 +30,46 @@ def runModel():
     return model,tokenizer,NER
 
 
+# def googleNewsApi(query,fromDate= (datetime.today() - timedelta(days=364)).strftime("%m/%d/%Y"),toDate=datetime.today().strftime("%m/%d/%Y")):
+    
+#     """ Run GoogleNews Library"""
+
+#     googlenews = GoogleNews(start=fromDate,end=toDate)
+#     googlenews.get_news(query)
+#     df = pd.DataFrame(googlenews.results())
+#     if not df.empty:
+#         df['link'] = df['link'].apply(lambda x: "https://"+x)
+#     return df
+
+
+def checkAndExtract(word):
+    if re.search('[\u4e00-\u9fff]+',word):
+        chinese_word = []
+        chinese_word += re.findall(re.compile(u'[\u4e00-\u9fff]+'), word) 
+        word = re.findall(re.compile(u'[a-zA-Z]+'), word)
+        return " ".join(word),"".join(chinese_word)
+    return word,None
+
 def googleNewsApi(query,fromDate= (datetime.today() - timedelta(days=364)).strftime("%m/%d/%Y"),toDate=datetime.today().strftime("%m/%d/%Y")):
     
     """ Run GoogleNews Library"""
-
-    googlenews = GoogleNews(start=fromDate,end=toDate)
-    googlenews.get_news(query)
-    df = pd.DataFrame(googlenews.results())
-    if not df.empty:
-        df['link'] = df['link'].apply(lambda x: "https://"+x)
+    
+    query,cn_query = checkAndExtract(query)
+    if query:
+        googlenews = GoogleNews(start=fromDate,end=toDate)
+        googlenews.get_news(query)
+        df = pd.DataFrame(googlenews.results())
+        if not df.empty:
+            df['link'] = df['link'].apply(lambda x: "https://"+x)
+        googlenews.clear()
+    if cn_query:
+        googlenews = GoogleNews(start=fromDate,end=toDate,lang='zh-cn')
+        googlenews.get_news(cn_query)
+        df = pd.concat([df,pd.DataFrame(googlenews.results())],ignore_index=True)
+        if not df.empty:
+            df['link'] = df['link'].apply(lambda x: "https://"+x)
     return df
+
 
 
 def displayNews(df):
