@@ -53,7 +53,7 @@ def checkAndExtract(word):
 def googleNewsApi(query,fromDate= (datetime.today() - timedelta(days=364)).strftime("%m/%d/%Y"),toDate=datetime.today().strftime("%m/%d/%Y")):
     
     """ Run GoogleNews Library"""
-    
+
     query,cn_query = checkAndExtract(query)
     if query:
         googlenews = GoogleNews(start=fromDate,end=toDate)
@@ -171,7 +171,7 @@ comparables_dict  = {
     'Orkes':['Lightlytics','Knapsack','Dagger'],
     'Pronto':['Slack','Webex App','Google Workspace'],
     'Upsolver':['Snowflake','Posit','Qubole'],
-    # 'Barramundi Group':[''],
+    'Barramundi Group':['Proximar Seafood'],
     'ISE Foods Inc':['Shin-Shin Foods','DooleBoB','S Foods'],
     'InterOpera':['Kenovate Solutions','InterWeb','OLS software'],
     'Nuritas':['LabGenius','Brightseed','Metanovas']
@@ -188,7 +188,7 @@ def main():
         # Company News Column
         with company_col:
             company_expander = st.expander(label='Company Filtering')
-            articles=pd.DataFrame()
+            articles = pd.DataFrame()
             categories = ['All', 'Management Change','Use of Funds','C-Suite hiring','Fundraising','Layoffs and Staffing','Merger Acquisition']
             with company_expander:
                 # company = st.selectbox("Select Company",list(comparables_dict.keys()))
@@ -229,9 +229,9 @@ def main():
             if submitted:
                 prompt = f"Find {choice} related search terms based on " + query +" and return in ordered list"
                 response = openai.Completion.create(
-                model="text-davinci-003",
-                prompt=prompt+query,
-                max_tokens=100)
+                model = "text-davinci-003",
+                prompt = prompt+query,
+                max_tokens = 100)
                 regex = r'\b[A-Za-z\s]+\b'
                 keywords = [query] + re.findall(regex,response['choices'][0]['text'])
                 st.session_state['keyword_df'] = pd.concat((googleNewsApi(i) for i in keywords), ignore_index=True)
@@ -243,7 +243,6 @@ def main():
                     st.write('link: ',row['link'])
                     view = st.button("View",key=index)
                     if view:
-                        # del_session_state()
                         st.session_state['r_article'] = row['title']
                         st.session_state['has_article'] = True
             else:
