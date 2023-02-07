@@ -39,9 +39,9 @@ def googleNewsApi(query,fromDate= (datetime.today() - timedelta(days=364)).strft
     df = pd.DataFrame(googlenews.results())
     if not df.empty:
         df['link'] = df['link'].apply(lambda x: "https://"+x)
-        return df
-    else:
-        return df
+    return df
+
+
 def displayNews(df):
     st.header(f"[{df['title']}]({df['link']})")
     st.write(df['date'])
@@ -84,6 +84,14 @@ def del_session_state():
     if st.session_state:
         for key in st.session_state.keys():
             del st.session_state[key]
+
+@st.cache
+def analyzeArticle():
+    st.session_state['summary'] = summarize(tokenizeForSummarizer(st.session_state['content']))
+    st.session_state['keywords'] = ", ".join([i[0] for i in kw_model.extract_keywords(st.session_state['content'])])
+    st.session_state['bi-keywords'] = ", ".join(i[0] for i in kw_model.extract_keywords(st.session_state['content'],keyphrase_ngram_range=(2,2)))
+    st.session_state['entities'] = NER(st.session_state['content'])
+    st.session_state['entities'] = list(set((e.label_,e.text) for e in st.session_state['entities'].ents))
 
 model,tokenizer, NER = runModel()
 comparables_dict  = {
@@ -220,11 +228,12 @@ def main():
                 if st.session_state['content']:
                     if st.session_state['has_article'] == True:
                         with st.spinner("Analyzing..."):
-                            st.session_state['summary'] = summarize(tokenizeForSummarizer(st.session_state['content']))
-                            st.session_state['keywords'] = ", ".join([i[0] for i in kw_model.extract_keywords(st.session_state['content'])])
-                            st.session_state['bi-keywords'] = ", ".join(i[0] for i in kw_model.extract_keywords(st.session_state['content'],keyphrase_ngram_range=(2,2)))
-                            st.session_state['entities'] = NER(st.session_state['content'])
-                            st.session_state['entities'] = list(set((e.label_,e.text) for e in st.session_state['entities'].ents))
+                            analyzeArticle()
+                            # st.session_state['summary'] = summarize(tokenizeForSummarizer(st.session_state['content']))
+                            # st.session_state['keywords'] = ", ".join([i[0] for i in kw_model.extract_keywords(st.session_state['content'])])
+                            # st.session_state['bi-keywords'] = ", ".join(i[0] for i in kw_model.extract_keywords(st.session_state['content'],keyphrase_ngram_range=(2,2)))
+                            # st.session_state['entities'] = NER(st.session_state['content'])
+                            # st.session_state['entities'] = list(set((e.label_,e.text) for e in st.session_state['entities'].ents))
                         st.session_state['has_article'] = False
                             
                     st.header("Summary of article:")
