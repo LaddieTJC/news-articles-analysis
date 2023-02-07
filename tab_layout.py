@@ -75,7 +75,6 @@ def googleNewsApi(query,fromDate= (datetime.today() - timedelta(days=364)).strft
 def displayNews(df):
     st.header(f"[{df['title']}]({df['link']})")
     st.write(df['date'])
-    st.write("Link: ",df['link'])
 
 
 def summarize(text):
@@ -240,7 +239,6 @@ def main():
                 for index, row in  st.session_state['keyword_df'].iterrows():
                     st.header(f"[{row['title']}]({row['link']})")
                     st.write(row['date'])
-                    st.write('link: ',row['link'])
                     view = st.button("View",key=index)
                     if view:
                         st.session_state['r_article'] = row['title']
@@ -268,10 +266,10 @@ def main():
                     st.write(st.session_state['summary'])
                     st.header("Top 5 keywords from article: ")
                     st.subheader("Unigram:")
-                    st.write(st.session_state['keywords'] )
+                    st.write(st.session_state['keywords'])
                     st.subheader("Bigram:")
                     st.write(st.session_state['bi-keywords'])
-                    st.session_state['ent_type'] = st.selectbox("Filter entities:",NER.get_pipe("ner").labels)
+                    st.session_state['ent_type'] = st.selectbox("Filter entities:",NER.get_pipe("ner").labels,index=11)
                     st.session_state['ent_df'] = pd.DataFrame(st.session_state['entities'] , columns=['Entity','Identified']).sort_values('Entity')
                     if st.session_state['ent_type']:
                         st.table(st.session_state['ent_df'][st.session_state['ent_df']['Entity'] == st.session_state['ent_type']])
