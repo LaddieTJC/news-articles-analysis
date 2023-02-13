@@ -19,17 +19,6 @@ extractor = URLExtract()
 openai.api_key = st.secrets['openai_api']
 
 
-@st.cache(allow_output_mutation=True)
-def runModel():
-
-    """ Load Model """
-
-    model = EncoderDecoderModel.from_pretrained("patrickvonplaten/longformer2roberta-cnn_dailymail-fp16")
-    tokenizer = LongformerTokenizer.from_pretrained("allenai/longformer-base-4096")
-    NER = spacy.load("en_core_web_sm")
-    return model,tokenizer,NER
-
-
 # def googleNewsApi(query,fromDate= (datetime.today() - timedelta(days=364)).strftime("%m/%d/%Y"),toDate=datetime.today().strftime("%m/%d/%Y")):
     
 #     """ Run GoogleNews Library"""
@@ -42,6 +31,18 @@ def runModel():
 #     return df
 
 
+# @st.cache(allow_output_mutation=True)
+@st.cache_resource(show_spinner=False)
+def runModel():
+
+    """ Load Model """
+
+    model = EncoderDecoderModel.from_pretrained("patrickvonplaten/longformer2roberta-cnn_dailymail-fp16")
+    tokenizer = LongformerTokenizer.from_pretrained("allenai/longformer-base-4096")
+    NER = spacy.load("en_core_web_sm")
+    return model,tokenizer,NER
+
+
 def checkAndExtract(word):
     if re.search('[\u4e00-\u9fff]+',word):
         chinese_word = []
@@ -50,6 +51,7 @@ def checkAndExtract(word):
         return " ".join(word),"".join(chinese_word)
     return word,None
 
+@st.cache_data(show_spinner=False)
 def googleNewsApi(query,fromDate= (datetime.today() - timedelta(days=364)).strftime("%m/%d/%Y"),toDate=datetime.today().strftime("%m/%d/%Y")):
     
     """ Run GoogleNews Library"""
@@ -113,14 +115,6 @@ def del_session_state():
     if st.session_state:
         for key in st.session_state.keys():
             del st.session_state[key]
-
-@st.cache
-def analyzeArticle():
-    st.session_state['summary'] = summarize(tokenizeForSummarizer(st.session_state['content']))
-    st.session_state['keywords'] = ", ".join([i[0] for i in kw_model.extract_keywords(st.session_state['content'])])
-    st.session_state['bi-keywords'] = ", ".join(i[0] for i in kw_model.extract_keywords(st.session_state['content'],keyphrase_ngram_range=(2,2)))
-    st.session_state['entities'] = NER(st.session_state['content'])
-    st.session_state['entities'] = list(set((e.label_,e.text) for e in st.session_state['entities'].ents))
 
 model,tokenizer, NER = runModel()
 comparables_dict  = {
@@ -200,17 +194,16 @@ def main():
                     #Comparable News Column 
                     with comparables_col:
                         st.subheader("Competitor News:")
-                        comparables_list = comparables_dict[company]
-                        st.session_state['com_df'] = pd.concat((googleNewsApi(i) for i in comparables_list), ignore_index=True)
-                        if not st.session_state['com_df'].empty:
-                            st.session_state['com_df'].apply(displayNews,axis=1)
+                        competitors_articles = pd.concat((googleNewsApi(i) for i in comparables_dict[company]), ignore_index=True)
+                        if not competitors_articles.empty:
+                            competitors_articles.apply(displayNews,axis=1)
                         else:
-                            st.write("No competitors news retrieved.")
+                            st.write("The competitors doesnt have any news.")
             st.subheader("Company News:")
             if not articles.empty:
                 articles.apply(displayNews,axis=1)
             else:
-                st.write("No news retrieved")
+                st.write("This company does not have any news.")
 
     # Business Development Tab 
 
@@ -259,8 +252,8 @@ def main():
                             st.session_state['summary'] = summarize(tokenizeForSummarizer(st.session_state['content']))
                             st.session_state['keywords'] = ", ".join([i[0] for i in kw_model.extract_keywords(st.session_state['content'])])
                             st.session_state['bi-keywords'] = ", ".join(i[0] for i in kw_model.extract_keywords(st.session_state['content'],keyphrase_ngram_range=(2,2)))
-                            st.session_state['entities'] = NER(st.session_state['content'])
-                            st.session_state['entities'] = list(set((e.label_,e.text) for e in st.session_state['entities'].ents))
+                            # st.session_state['entities'] = NER(st.session_state['content'])
+                            st.session_state['entities'] = list(set((e.label_,e.text) for e in NER(st.session_state['content']).ents))
                         st.session_state['has_article'] = False
                     st.header("Summary of article:")
                     st.write(st.session_state['summary'])
@@ -275,6 +268,7 @@ def main():
                         st.table(st.session_state['ent_df'][st.session_state['ent_df']['Entity'] == st.session_state['ent_type']])
                 else:
                     st.write("Content cannot be retreived")
+            
 
 
 
